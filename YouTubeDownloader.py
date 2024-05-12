@@ -1,63 +1,62 @@
-import tkinter as tk
-from tkinter import ttk
 import os
-from pytube import YouTube
-from tkinter import messagebox as m_box
-import subprocess
-import threading
+from pytube import YouTube, exceptions
+from time import time
+from tkinter import *
+from customtkinter import *
 
-#e kien nho cai dat day du thu vien nha
+# Initialize all the settings
+set_appearance_mode("System") # Setting the appearance mode to follow by the app: "System", "Light" or "Dark"
+set_default_color_theme("blue") # Setting the theme of the app to follow
+for i in os.listdir(os.getcwd()):
+    if i == "youtube_downloads": # If there's already a folder called "youtube_downloads", do not create a new one
+        break
+else:    
+    os.mkdir("youtube_downloads") # If there is no folder called "youtube_downloads", create a new one
 
-def onClick():
-    got_link = link.get()
-    got_path = path.get()
+# Download video function
+def download_video(entry_field):
     try:
-        yt = YouTube(str(got_link))
-    except:
-        m_box.showerror("Error", "Connection Problem !")
-    else:
-        vid = yt.streams.get_highest_resolution()
-        destination = str(got_path)
-        vid.download(destination)
-        os.startfile(got_path)
-        return m_box.showinfo('Successfully Downloaded.', f"Your YouTube Vidoe Downloaded Successfully at {got_path}/{yt.title}")
+        start_time = time()
+        download_location = "youtube_downloads/"
+        YouTube(entry_field).streams.first().download(download_location)
+        end_time = time()
 
+        # Showing the download time in a new window
+        popup = CTk()
+        popup.title("Download Status")
+        popup.resizable(False, False)
+        popup.geometry("200x100")
+        popup.grid_columnconfigure(0, weight=1)
+        popup.grid_rowconfigure((0,1), weight=1)
+        msg = StringVar()
+        msg.set(f"Download successful!\nTotal time taken: {round(end_time-start_time,3)} seconds")
+        label = CTkLabel(popup, text=msg.get())
+        label.grid(row=0, column=0)
+        button = CTkButton(popup, text="OK", command=popup.destroy)
+        button.grid(row=1, column=0)
+        popup.mainloop()
+    except exceptions.RegexMatchError: # If there's an invalid link or empty link, show an error message
+        error = CTk()
+        error.title("Error")
+        error.resizable(False, False)
+        error.geometry("300x100")
+        error.grid_rowconfigure((0,1), weight=1)
+        error.grid_columnconfigure(0, weight=1)
+        error_label = CTkLabel(error, text="Please enter a valid YouTube link")
+        error_label.grid(row=0, column=0)
+        button = CTkButton(error, text="OK", command=error.destroy)
+        button.grid(row=1, column=0)
+        error.mainloop()
 
-threads = []
-
-
-def startThredProcess():
-    myNewThread = threading.Thread(target=onClick)
-    threads.append(myNewThread)
-    myNewThread.start()
-
-win = tk.Tk()
-win.geometry("500x400")
-win.title("YouTube Video Downloader")
-win.minsize(500, 400)
-win.maxsize(500, 400)
-frame = ttk.LabelFrame(win)
-frame.grid(row=0, column=0, padx=70, pady=90)
-
-get_info = ttk.Label(frame, text="Enter YouTube Video Link : ")
-get_info.grid(row=0, column=0, sticky=tk.W)
-
-link = tk.StringVar()
-
-yt_link = ttk.Entry(frame, width=60, textvariable=link)
-yt_link.grid(row=1, columnspan=3, padx=0, pady=3)
-yt_link.focus()
-
-get_info = ttk.Label(frame, text="Enter Downloading Path : ")
-get_info.grid(row=3, column=0, sticky=tk.W)
-
-path = tk.StringVar()
-
-download_path = ttk.Entry(frame, width=60, textvariable=path)
-download_path.grid(row=4, columnspan=3, padx=0, pady=3)
-
-btn1 = ttk.Button(frame, text="Download Video",
-                  width=15, command=startThredProcess)
-btn1.grid(row=7, columnspan=3, padx=13, pady=7)
-
-win.mainloop()
+# Initializing the layout of the app
+master = CTk()
+master.title("YouTube Downloader")
+master.grid_rowconfigure((0,1), weight=1)
+master.grid_columnconfigure((0,1), weight=1)
+master.geometry("350x150")
+master.resizable(False, False)
+CTkLabel(master, text="Enter YouTube video URL:").grid(row=0, column=0)
+entry = CTkEntry(master)
+entry.grid(row=0, column=1)
+CTkButton(master, text='Download', command=lambda *args: download_video(entry.get())).grid(row=1, column=0, columnspan=2)
+master.mainloop()
